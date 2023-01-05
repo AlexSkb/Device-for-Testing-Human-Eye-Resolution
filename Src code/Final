@@ -12,9 +12,10 @@
 #define LEDS_COUNT  60                                                                      
 #define LEDS_PIN  2
 #define CHANNEL   0
-#define MAX_SPACE 99
-#define MAX_ROW   99
-#define MAX_ROW   99
+#define MAX_SPACE 60
+#define MAX_ROW   60
+#define MAX_FREQ  120
+#define MAX_BRIGHTNESS  255
 Freenove_ESP32_WS2812 strip = Freenove_ESP32_WS2812(LEDS_COUNT, LEDS_PIN, CHANNEL, TYPE_GRB); //Led strip setup 
 
 #define SCREEN_WIDTH 128
@@ -24,14 +25,13 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);   //di
 
 
 const byte IR_RECEIVE_PIN = 15;   //ir reciver setup
-const int ledPin =  5;
+//const int ledPin =  5;            //pin for test, uncomment if needed
 
-int color[6][3]={{0, 0, 0}, {0, 255, 0}, {0, 0, 255}, {255, 255, 255},{255, 0, 0},{0, 0, 0}}; 
-String menu_setup[5]={"Red________", "Green______", "Blue_______", "Freqency___   Hz","Mode_______"};
+int color[6][3]={{0, 0, 0}, {255, 0, 0}, {0, 255, 0}, {0, 0, 255},{255, 255, 255},{0, 0, 0}}; 
+String menu_setup[5]={"Red________", "Green______", "Blue_______", "Freqency___    Hz","Mode_______"};
 String mode_setup[3]={"Multi", "Single", "Pause"};
 int col_nr=0;
 int freq=1;
-int bright=20;
 int space=3;
 int row=1;
 int k_counter=0;
@@ -43,7 +43,6 @@ char prev_button=' ';
 
 TaskHandle_t Task0;
 TaskHandle_t Task1;
-//SemaphoreHandle_t semaphore;
 
 static const unsigned char PROGMEM logo16_glcd_bmp[] =   //Logo PolSl
 { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
@@ -119,7 +118,7 @@ void Menu(){
   color[5][0]=col_r;
   color[5][1]=col_g;
   color[5][2]=col_b;
-  int menu_data[4] ={color[col_nr][0], color[col_nr][1], color[col_nr][2],freq};     //tutaj if z spaceem
+  int menu_data[4] ={color[col_nr][0], color[col_nr][1], color[col_nr][2],freq};    
   display.clearDisplay();   // Clear the buffer.
   for (int i=0;i<5;i++){
     display.setCursor(5, 10*i);
@@ -187,9 +186,9 @@ char Button()
 }
 
 void setup() {
-  pinMode(ledPin, OUTPUT);
+  //pinMode(ledPin, OUTPUT);   //pin for test, uncomment if needed
   Serial.begin(9600);                         //OLED setup
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);   // init done
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);   // OLED init done
   
   display.clearDisplay();                                 // Clear the buffer.
   display.drawBitmap(0,0, logo16_glcd_bmp, 128,64,WHITE); // show logo polsl
@@ -206,8 +205,9 @@ void setup() {
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
 
   strip.begin();            //strip setup
-  strip.setBrightness(bright);  
-  xTaskCreatePinnedToCore(
+  strip.setBrightness(MAX_BRIGHTNESS);  
+  
+  xTaskCreatePinnedToCore(                            //Task_1 creation
     loop1,    //Function for the task 
     "Task1",  //Name of the task
     10000,     //Stack size (word)
@@ -216,7 +216,7 @@ void setup() {
     &Task1,   //Task handle address
     1);       //Task's core number
 
-  xTaskCreatePinnedToCore(
+  xTaskCreatePinnedToCore(                            //Task_0 creation
     loop0,    //Function for the task 
     "Task0",  //Name of the task
     10000,     //Stack size (word)
@@ -231,10 +231,10 @@ void loop0(void *parameter)
   for(;;){
   char button=Button();
   switch (button){
-    case 'u': if (freq >= 39) freq = 40; else freq++; break;
+    case 'u': if (freq >= MAX_FREQ-1) freq = MAX_FREQ; else freq++; break;
     case 'd': if (freq <= 2) freq = 1; else freq--; break;
     
-    case 'r': if (col_nr >= 4) col_nr = 5; else col_nr++;break;
+    case 'r': if (col_nr >= 4) col_nr = 5; else col_nr++;break; 
     case 'l': if (col_nr <= 1) col_nr = 0; else col_nr--;break;
     
     case '1': if (col_r >= MAX_Col_Val-1) col_r = MAX_Col_Val; else col_r++;  break;
@@ -246,15 +246,15 @@ void loop0(void *parameter)
     case '3': if (col_b >= MAX_Col_Val-1) col_b = MAX_Col_Val; else col_b++; break;
     case '6': if (col_b <= 1) col_b = 0; else col_b--; break;
     
-    case '8': if (row >= MAX_ROW-1) row = MAX_ROW; else row++;  break;//
-    case '0': if (row <= 1) row = 1; else row--; break;//
+    case '8': if(k_counter==0){if (row >= MAX_ROW-1) row = MAX_ROW; else row++;}  break;
+    case '0': if(k_counter==0){if (row <= 1) row = 1; else row--;} break;//
     
-    case '9': if (address >= LEDS_COUNT-1) address = LEDS_COUNT; else address++; break;
-    case '#': if (address <= 1) address = 0; else address--; break; //Serial.print(pressed_bttn);
+    case '7': if(k_counter==0){if (space >= MAX_SPACE-1) space = MAX_SPACE; else space++;}break;
+    case '*': if(k_counter==0){if (space <= 1) space = 0; else space--;} break;
     
-    case '7': if (space >= MAX_SPACE-1) space = MAX_SPACE; else space++;  break;
-    case '*': if (space <= 1) space = 0; else space--; break;
-       
+    case '9': if(k_counter!=2){if (address >= LEDS_COUNT-1) address = LEDS_COUNT; else address++;} break;
+    case '#': if(k_counter!=2){if (address <= 1) address = 0; else address--;} break; 
+           
     case 'k': k_counter++; if(k_counter>2)k_counter=0;break; 
     default:   break;  
   }
@@ -274,28 +274,28 @@ void loop1(void *parameter)
           for (int i = address; i < LEDS_COUNT; i=i+space+row-1){       
               for (int j = 0; j <row; j++){strip.setLedColorData(i+j, color[col_nr][0], color[col_nr][1], color[col_nr][2]);}}    //rząd diód i przerwy
           strip.show();
-          digitalWrite(ledPin, HIGH);
+          //digitalWrite(ledPin, HIGH);   //Didgital output for testing, to test the time piriod on osciloscope please uncomment this line, signal pin is 5
           delay(500/freq-millis()+prev_t); 
 
           prev_t=millis(); 
           for (int i = 0; i < LEDS_COUNT; i++) 
             {strip.setLedColorData(i,color[0][0], color[0][1], color[0][2]);}   //wyłączanie diód         
           strip.show();
-          digitalWrite(ledPin, LOW);
+          //digitalWrite(ledPin, LOW);  //Didgital output for testing, to test the time piriod on osciloscope please uncomment this line, signal pin is 5
           delay(500/freq-millis()+prev_t); //tutaj trzeba odjąć czas trwania fora za pomocą funkcji milis przed i po forze
       }
       else if (k_counter==1)
       {
         strip.setLedColorData(address, color[col_nr][0], color[col_nr][1], color[col_nr][2]);   //Zapalenie pojedynczej diody o danym adresie oraz danym kolorze 
         strip.show();
-        digitalWrite(ledPin, HIGH);
+        //digitalWrite(ledPin, HIGH);       //Didgital output for testing, to test the time piriod on osciloscope please uncomment this line, signal pin is 5
         delay(500/freq); 
         
           prev_t=millis(); 
           for (int i = 0; i < LEDS_COUNT; i++) 
             {strip.setLedColorData(i,color[0][0], color[0][1], color[0][2]);}   //wyłączanie diód         
           strip.show();
-          digitalWrite(ledPin, LOW);
+          //digitalWrite(ledPin, LOW);  //Didgital output for testing, to test the time piriod on osciloscope please uncomment this line, signal pin is 5   
           delay(500/freq-millis()+prev_t); //tutaj trzeba odjąć czas trwania fora za pomocą funkcji milis przed i po forze 
       }}
   }
