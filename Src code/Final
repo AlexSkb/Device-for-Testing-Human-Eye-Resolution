@@ -1,11 +1,6 @@
 #include <IRremote.h>
-#include "Arduino.h"
 #include "Freenove_WS2812_Lib_for_ESP32.h"
-#include <SPI.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>  
-#include <Adafruit_I2CDevice.h>
 
 
 #define MAX_Col_Val 255
@@ -31,14 +26,14 @@ int color[6][3]={{0, 0, 0}, {255, 0, 0}, {0, 255, 0}, {0, 0, 255},{255, 255, 255
 String menu_setup[5]={"Red________", "Green______", "Blue_______", "Freqency___    Hz","Mode_______"};
 String mode_setup[3]={"Multi", "Single", "Pause"};
 int col_nr=0;
-int freq=1;
-int space=3;
-int row=1;
-int k_counter=0;
-int address=0;
 int col_r=0;
 int col_g=0;
 int col_b=0;
+int freq=1;
+int space=3;
+int row=1;
+int address=0;
+int k_counter=0;
 char prev_button=' ';
 
 TaskHandle_t Task0;
@@ -113,7 +108,6 @@ static const unsigned char PROGMEM logo16_glcd_bmp[] =   //Logo PolSl
 
 
 
-
 void Menu(){ 
   color[5][0]=col_r;
   color[5][1]=col_g;
@@ -134,7 +128,7 @@ void Menu(){
       display.setCursor(5, 50);
       display.println("Spc:");
       display.setCursor(30, 50);
-      display.println(space);
+      display.println(space-1);
       
       display.setCursor(45, 50);
       display.println("Row:" );
@@ -196,16 +190,15 @@ void setup() {
   delay(4000);
     
   display.clearDisplay();                // Clear the buffer.
-  display.setTextSize(1);               // Draw 2X-scale text
+  display.setTextSize(1);               // Text size setup Draw 2X-scale text
   display.setTextColor(SSD1306_WHITE);    //init data
   Menu();
   
   Serial.begin(115200);                     //IR Recive setup
-  Serial.println("IR Receive test");
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
 
-  strip.begin();            //strip setup
-  strip.setBrightness(MAX_BRIGHTNESS);  
+  strip.begin();                        //strip setup
+  strip.setBrightness(MAX_BRIGHTNESS);  //brightnes setup
   
   xTaskCreatePinnedToCore(                            //Task_1 creation
     loop1,    //Function for the task 
@@ -247,10 +240,10 @@ void loop0(void *parameter)
     case '6': if (col_b <= 1) col_b = 0; else col_b--; break;
     
     case '8': if(k_counter==0){if (row >= MAX_ROW-1) row = MAX_ROW; else row++;}  break;
-    case '0': if(k_counter==0){if (row <= 1) row = 1; else row--;} break;//
+    case '0': if(k_counter==0){if (row <= 2) row = 1; else row--;} break;//
     
     case '7': if(k_counter==0){if (space >= MAX_SPACE-1) space = MAX_SPACE; else space++;}break;
-    case '*': if(k_counter==0){if (space <= 1) space = 0; else space--;} break;
+    case '*': if(k_counter==0){if (space <= 2) space = 1; else space--;} break;
     
     case '9': if(k_counter!=2){if (address >= LEDS_COUNT-1) address = LEDS_COUNT; else address++;} break;
     case '#': if(k_counter!=2){if (address <= 1) address = 0; else address--;} break; 
