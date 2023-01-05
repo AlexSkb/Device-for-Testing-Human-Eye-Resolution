@@ -34,7 +34,7 @@ int space=3;    //Space - How many blank LED's should be between last diode in r
 int row=1;      //Row - how many LED's should be lighted in a row
 int address=0;  //Addres - start adress of the first diode, due to it pusshing the diodes in relative direction
 int k_counter=0;//Changing the mode (Multi diode/Single diode/Pause)
-char prev_button=' '; //Default value of button
+char prev_command=' '; //Default value of first command
 
 TaskHandle_t Task0;
 TaskHandle_t Task1;
@@ -252,8 +252,8 @@ void loop0(void *parameter){                     //Task 0 whitch is responsible 
     case 'k': k_counter++; if(k_counter>2)k_counter=0;break;    //Changing the mode (Multi diode/Single diode/Pause)
     default:   break;  
     }
-  if(prev_button!=button){Menu();}      //Checking if button has been pressed, if yes then actualise the 
-  prev_button=button;                   //Remembering last command from remote
+  if(prev_command!=command){Menu();}      //Checking if button has been pressed, if yes then actualise the 
+  prev_command=command;                   //Remembering last command from remote
   }
 }
 
